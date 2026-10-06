@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>벽트위터미디어</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background-color: #f7f9f9; display: flex; justify-content: center;
+        padding: 40px 20px; margin: 0; color: #0f1419;
+    }
+
+    .maker-container {
+        display: flex; gap: 40px; flex-wrap: wrap; max-width: 1000px;
+        justify-content: center; align-items: flex-start;
+    }
+
+    @media (max-width: 768px) {
+        body { padding: 20px 10px; }
+        .maker-container { gap: 20px; flex-direction: column; align-items: center; width: 100%; }
+        .input-section { width: 100% !important; max-width: 340px; padding: 20px !important; }
+        .preview-col { width: 100%; }
+        .preview-wrap { width: 100%; }
+    }
+
+    /* ───────── 입력 폼 ───────── */
+    .input-section {
+        background: white; padding: 30px; border-radius: 20px; width: 340px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box;
+    }
+    .input-section h2 { margin: 0 0 18px; font-size: 18px; text-align: center; }
+    .input-group { margin-bottom: 12px; }
+    .input-group > label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: bold; color: #666; }
+    .input-group input[type="text"], .input-group select {
+        width: 100%; padding: 8px 12px; border: 1px solid #dbdbdb; border-radius: 6px;
+        box-sizing: border-box; font-family: inherit; font-size: 13px; background: white;
+    }
+    .check-row {
+        display: flex; gap: 10px; align-items: center; background: #f9f9f9;
+        padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; color: #262626;
+    }
+    .check-row input { margin: 0; }
+    .section-title { font-size: 13px; font-weight: bold; margin: 20px 0 8px; padding-top: 16px; border-top: 1px solid #efefef; }
+
+    /* 3열 / 4열 선택 */
+    .seg { display: flex; gap: 4px; background: #eee; padding: 4px; border-radius: 10px; }
+    .seg button {
+        flex: 1; padding: 8px 4px; border: none; background: none; font-size: 12px; font-weight: bold;
+        color: #666; cursor: pointer; border-radius: 8px; font-family: inherit;
+    }
+    .seg button.active { background: white; color: #0f1419; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .hint { font-size: 11px; color: #8b98a5; margin-top: 5px; }
+
+    /* 미디어 추가 & 목록 */
+    .add-btn {
+        display: block; text-align: center; padding: 11px; margin-bottom: 8px;
+        background: #fafafa; border: 1px dashed #b5b5b5; border-radius: 6px;
+        color: #0f1419; font-size: 12px; font-weight: bold; cursor: pointer;
+    }
+    .add-btn:hover { background: #f0f0f0; }
+    .media-list { display: flex; flex-direction: column; }
+    /* 사진 한 장 = 2줄: [번호][썸네일] | 설명 / 칸 합치기 + ▲▼× */
+    .media-row {
+        display: grid; grid-template-columns: 14px 52px minmax(0, 1fr);
+        column-gap: 6px; row-gap: 5px; align-items: center;
+        padding: 7px 0; border-bottom: 1px solid #f2f2f2;
+    }
+    .media-num { grid-row: 1 / span 2; font-size: 11px; color: #8b98a5; text-align: right; }
+    .thumb-box { grid-row: 1 / span 2; width: 52px; height: 40px; display: flex; align-items: center; justify-content: center; }
+    .row-ctrl { display: flex; align-items: center; gap: 4px; }
+    .span-seg { display: flex; gap: 2px; background: #eff3f4; padding: 2px; border-radius: 6px; margin-right: auto; }
+    .span-seg button {
+        border: none; background: none; padding: 3px 5px; border-radius: 4px; cursor: pointer;
+        font-size: 11px; font-weight: bold; color: #8b98a5; font-family: inherit; line-height: 1.2;
+    }
+    .span-seg button.active { background: white; color: #0f1419; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+    .media-thumb {
+        width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0; cursor: pointer;
+        background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #eff3f4;
+        box-sizing: border-box;
+    }
+    .media-row.selected .media-thumb { outline: 2px solid #1d9bf0; outline-offset: 1px; }
+    .media-row.selected input[type="text"] { border-color: #1d9bf0; }
+    .media-row input[type="text"] {
+        width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #dbdbdb; border-radius: 6px;
+        font-family: inherit; font-size: 12px; box-sizing: border-box;
+    }
+    .mini-btn {
+        width: 22px; height: 22px; padding: 0; border: 1px solid #dbdbdb; border-radius: 5px;
+        background: white; color: #536471; font-size: 11px; line-height: 20px; cursor: pointer; flex-shrink: 0;
+    }
+    .mini-btn:disabled { opacity: 0.3; cursor: default; }
+    .mini-btn.del { color: #f4212e; }
+    .media-tools { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: #8b98a5; }
+    .clear-btn { white-space: nowrap; flex-shrink: 0; margin-left: 8px; border: none; background: none; color: #f4212e; font-size: 11px; font-weight: bold; cursor: pointer; padding: 0; font-family: inherit; }
+
+    .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .style-grid label { display: block; font-size: 11px; color: #666; font-weight: bold; margin-bottom: 3px; }
+    .style-grid select { width: 100%; padding: 6px 4px; border: 1px solid #dbdbdb; border-radius: 6px; font-family: inherit; font-size: 12px; background: white; }
+
+    .btn-download {
+        width: 100%; padding: 12px; margin-top: 8px; background: #0f1419; color: white;
+        border: none; border-radius: 999px; font-weight: bold; font-size: 14px; cursor: pointer; font-family: inherit;
+    }
+    .btn-download:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ───────── 미리보기 카드 ───────── */
+    /* 칸 크기는 고정. 4열로 바꾸면 칸이 작아지는 대신 카드가 넓어짐 */
+    .preview-col { display: flex; flex-direction: column; max-width: 100%; }
+    .preview-wrap { max-width: 100%; overflow-x: auto; display: flex; padding-bottom: 6px; }
+
+    /* 🌟 사진 크기·위치 조정 패널 (미리보기 아래, 저장 이미지에는 안 들어감) */
+    /* width:0 + min-width:100% → 패널이 카드 폭을 넓히지 않고 카드 폭에 맞춰짐 */
+    .adjust-hint { width: 0; min-width: 100%; font-size: 12px; color: #8b98a5; text-align: center; margin-top: 6px; }
+    .adjust-panel {
+        width: 0; min-width: 100%;
+        display: none; margin-top: 8px; background: white; border-radius: 14px; padding: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08); outline: 1px solid #e1e8ed; box-sizing: border-box;
+    }
+    .adjust-panel.show { display: block; }
+    .adj-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .adj-thumb {
+        width: 34px; height: 34px; border-radius: 4px; flex-shrink: 0; background-color: #eff3f4;
+        background-repeat: no-repeat; outline: 2px solid #1d9bf0;
+    }
+    .adj-title { flex: 1; font-size: 13px; font-weight: bold; }
+    .adj-btn {
+        padding: 6px 12px; border-radius: 999px; border: 1px solid #cfd9de; background: white;
+        font-size: 12px; font-weight: bold; color: #0f1419; cursor: pointer; font-family: inherit;
+    }
+    .adj-btn.primary { background: #0f1419; border-color: #0f1419; color: white; }
+    .adj-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+    .adj-row label { width: 34px; font-size: 12px; font-weight: bold; color: #536471; flex-shrink: 0; }
+    .adj-row input[type="range"] { flex: 1; min-width: 0; accent-color: #1d9bf0; }
+    .adj-val { width: 62px; text-align: right; font-size: 12px; color: #536471; flex-shrink: 0; white-space: nowrap; }
+    .adj-tip { font-size: 11px; color: #8b98a5; margin-top: 8px; line-height: 1.45; }
+    #x-card {
+        --cell: 128px; --gap: 2px; --cols: 3;
+        --cap-size: 12px;
+        --cap-bg: linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.32) 55%, rgba(0,0,0,0) 100%);
+        width: calc(var(--cols) * var(--cell) + (var(--cols) - 1) * var(--gap));
+        margin: 0 auto; flex-shrink: 0;
+        background: #ffffff; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08); outline: 1px solid #e1e8ed;
+    }
+    #x-card.shadow-soft   { --cap-bg: linear-gradient(to top, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0) 100%); }
+    #x-card.shadow-strong { --cap-bg: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.48) 60%, rgba(0,0,0,0) 100%); }
+
+    /* 헤더 */
+    .x-header { display: flex; align-items: center; gap: 22px; padding: 8px 14px 6px 16px; }
+    .x-icon { width: 21px; height: 21px; fill: #0f1419; flex-shrink: 0; }
+    .x-title-box { flex: 1; min-width: 0; }
+    .x-title { display: flex; align-items: center; gap: 4px; font-size: 20px; font-weight: 800; line-height: 1.25; }
+    .x-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .x-lock { width: 19px; height: 19px; fill: #0f1419; flex-shrink: 0; }
+    .x-sub { font-size: 13px; color: #536471; line-height: 1.3; margin-top: 1px; }
+
+    /* 탭 */
+    .x-tabs { display: flex; border-bottom: 1px solid #eff3f4; margin-top: 4px; }
+    .x-tab { flex: 1; display: flex; justify-content: center; height: 50px; }
+    .x-tab-inner {
+        position: relative; display: flex; align-items: center; gap: 4px; height: 100%;
+        font-size: 15px; font-weight: 500; color: #536471; white-space: nowrap;
+    }
+    .x-tab.active .x-tab-inner { font-weight: 700; color: #0f1419; }
+    .x-tab-bar { position: absolute; left: -4px; right: -4px; bottom: 0; height: 4px; border-radius: 999px; background: #1d9bf0; }
+    .x-chev { width: 18px; height: 18px; fill: #0f1419; }
+
+    /* 미디어 그리드 */
+    .x-grid {
+        display: grid; grid-template-columns: repeat(var(--cols), var(--cell));
+        gap: var(--gap); padding-top: var(--gap); background: #ffffff;
+    }
+    .x-cell {
+        position: relative; width: var(--cell); height: var(--cell); overflow: hidden;
+        background-color: #eff3f4; background-size: cover; background-position: center; background-repeat: no-repeat;
+    }
+    .x-cell[data-id] { cursor: pointer; }
+
+    /* 사진은 배경이 아니라 <img>로 넣어야 고화질 저장 시 원본 해상도로 그려짐 */
+    .x-img {
+        position: absolute; display: block; max-width: none; max-height: none;
+        pointer-events: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
+    }
+    /* 조정 중인 칸: 파란 테두리 + 드래그 가능 (저장할 땐 테두리 빠짐) */
+    .x-cell.selected { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .x-cell.selected:active { cursor: grabbing; }
+    .x-cell.selected::after {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        border: 3px solid #1d9bf0; pointer-events: none; z-index: 3;
+    }
+    /* 칸 하단 설명 + 그림자 */
+    .x-cap {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        padding: 22px 7px 7px; box-sizing: border-box;
+        background: var(--cap-bg);
+        color: #ffffff; font-size: var(--cap-size); font-weight: 700; line-height: 1.3;
+        text-align: center; word-break: keep-all; overflow-wrap: anywhere;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 0 6px rgba(0,0,0,0.35);
+    }
+    #x-card.cap-left .x-cap { text-align: left; }
+</style>
+</head>
+<body>
+
+<div class="maker-container">
+    <!-- ───────── 입력 폼 ───────── -->
+    <div class="input-section">
+        <h2>벽트위터미디어</h2>
+
+        <div class="input-group">
+            <label>닉네임</label>
+            <input type="text" id="in-nick" value="벽" placeholder="ex. 닉네임">
+        </div>
+        <div class="input-group">
+            <label class="check-row" style="display:flex; color:#262626;">
+                <input type="checkbox" id="in-lock" checked> 자물쇠(비공개 계정) 표시
+            </label>
+        </div>
+        <div class="input-group">
+            <label>사진 및 동영상 숫자</label>
+            <input type="text" id="in-count" value="5,061" placeholder="ex. 5,061">
+            <div class="hint">숫자만 적으면 쉼표가 자동으로 붙어요</div>
+        </div>
+
+        <div class="section-title">미디어</div>
+        <div class="input-group">
+            <label>열 개수</label>
+            <div class="seg">
+                <button type="button" id="col-3" class="active" onclick="setCols(3)">3열</button>
+                <button type="button" id="col-4" onclick="setCols(4)">4열</button>
+            </div>
+            <div class="hint">칸 크기는 그대로, 4열이면 화면이 옆으로 넓어져요</div>
+        </div>
+
+        <div class="input-group">
+            <label>사진 (<span id="media-count">0</span>장)</label>
+            <label for="in-media-add" class="add-btn">＋ 사진 추가 (여러 장 한 번에 선택 가능)</label>
+            <input type="file" id="in-media-add" accept="image/*" multiple style="display: none;">
+            <div class="media-list" id="media-list"></div>
+            <div class="media-tools" id="media-tools" style="display: none;">
+                <span>썸네일을 누르면 크기·위치 조정</span>
+                <button type="button" class="clear-btn" onclick="clearMedia()">전체 삭제</button>
+            </div>
+        </div>
+
+        <div class="section-title">설명 텍스트 스타일</div>
+        <div class="style-grid">
+            <div>
+                <label>글자 크기</label>
+                <select id="in-cap-size">
+                    <option value="11">작게</option>
+                    <option value="12" selected>보통</option>
+                    <option value="14">크게</option>
+                </select>
+            </div>
+            <div>
+                <label>정렬</label>
+                <select id="in-cap-align">
+                    <option value="center" selected>가운데</option>
+                    <option value="left">왼쪽</option>
+                </select>
+            </div>
+            <div>
+                <label>그림자</label>
+                <select id="in-cap-shadow">
+                    <option value="soft">연하게</option>
+                    <option value="normal" selected>보통</option>
+                    <option value="strong">진하게</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section-title">저장 화질</div>
+        <div class="input-group">
+            <select id="in-quality">
+                <option value="6" selected>최고화질 (6배)</option>
+                <option value="4">고화질 (4배)</option>
+                <option value="2">보통 (2배)</option>
+            </select>
+            <div class="hint" id="save-size-info"></div>
+        </div>
+
+        <button class="btn-download" id="btn-save" onclick="captureMockup()">📸 이미지로 저장하기</button>
+    </div>
+
+    <!-- ───────── 미리보기 ───────── -->
+    <div class="preview-col">
+    <div class="preview-wrap" id="preview-wrap">
+        <div id="x-card">
+            <div class="x-header">
+                <svg class="x-icon" viewBox="0 0 24 24"><path d="M7.414 13l5.043 5.04-1.414 1.42L3.586 12l7.457-7.46 1.414 1.42L7.414 11H21v2H7.414z"/></svg>
+                <div class="x-title-box">
+                    <div class="x-title">
+                        <span id="v-nick">벽</span>
+                        <svg class="x-lock" id="v-lock" viewBox="0 0 24 24"><path d="M17.5 7H17v-.25c0-2.76-2.24-5-5-5s-5 2.24-5 5V7h-.5C5.12 7 4 8.12 4 9.5v9C4 19.88 5.12 21 6.5 21h11c1.39 0 2.5-1.12 2.5-2.5v-9C20 8.12 18.89 7 17.5 7zM13 14.73V17h-2v-2.27c-.59-.34-1-.99-1-1.73 0-1.1.9-2 2-2 1.11 0 2 .9 2 2 0 .74-.4 1.39-1 1.73zM15 7H9v-.25c0-1.66 1.35-3 3-3 1.66 0 3 1.34 3 3V7z"/></svg>
+                    </div>
+                    <div class="x-sub"><span id="v-count">5,061</span> 사진 및 동영상</div>
+                </div>
+                <svg class="x-icon" viewBox="0 0 24 24"><path d="M10.25 3.75c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5c1.795 0 3.419-.726 4.596-1.904 1.178-1.177 1.904-2.801 1.904-4.596 0-3.59-2.91-6.5-6.5-6.5zm-8.5 6.5c0-4.694 3.806-8.5 8.5-8.5s8.5 3.806 8.5 8.5c0 1.986-.682 3.815-1.824 5.262l4.781 4.781-1.414 1.414-4.781-4.781c-1.447 1.142-3.276 1.824-5.262 1.824-4.694 0-8.5-3.806-8.5-8.5z"/></svg>
+            </div>
+
+            <div class="x-tabs">
+                <div class="x-tab"><div class="x-tab-inner">게시물</div></div>
+                <div class="x-tab"><div class="x-tab-inner">답글</div></div>
+                <div class="x-tab"><div class="x-tab-inner">재게시</div></div>
+                <div class="x-tab active">
+                    <div class="x-tab-inner">
+                        사진
+                        <svg class="x-chev" viewBox="0 0 24 24"><path d="M3.543 8.96l1.414-1.42L12 14.59l7.043-7.05 1.414 1.42L12 17.41 3.543 8.96z"/></svg>
+                        <div class="x-tab-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="x-grid" id="v-grid"></div>
+        </div>
+    </div>
+
+    <div class="adjust-hint" id="adjust-hint" style="display: none;">미리보기의 사진을 누르면 크기·위치를 조정할 수 있어요</div>
+
+    <div class="adjust-panel" id="adjust-panel">
+        <div class="adj-head">
+            <div class="adj-thumb" id="adj-thumb"></div>
+            <div class="adj-title"><span id="adj-num">1</span>번 사진 조정 중</div>
+            <button type="button" class="adj-btn" onclick="resetAdjust()">초기화</button>
+            <button type="button" class="adj-btn primary" onclick="selectMedia(null)">완료</button>
+        </div>
+        <div class="adj-row">
+            <label>크기</label>
+            <input type="range" id="adj-zoom" min="50" max="300" step="1" value="100">
+            <span class="adj-val" id="adj-zoom-val">100%</span>
+        </div>
+        <div class="adj-row">
+            <label>좌우</label>
+            <input type="range" id="adj-x" min="0" max="100" step="1" value="50">
+            <span class="adj-val" id="adj-x-val">가운데</span>
+        </div>
+        <div class="adj-row">
+            <label>상하</label>
+            <input type="range" id="adj-y" min="0" max="100" step="1" value="50">
+            <span class="adj-val" id="adj-y-val">가운데</span>
+        </div>
+        <div class="adj-tip">
+            파란 테두리 사진을 미리보기에서 직접 끌어서 옮길 수 있어요.<br>
+            PC는 마우스 휠, 폰은 두 손가락으로 크기도 바꿀 수 있어요. (100% = 칸에 꽉 차는 기본 크기)
+        </div>
+    </div>
+    </div>
+</div>
+
+<script>
+    // { id, src, w, h, caption, zoom(1 = 칸에 꽉 참), px, py(0~100, 50 = 가운데) }
+    let media = [];
+    let nextId = 1;
+    let cols = 3;
+    let selectedId = null;   // 크기·위치 조정 중인 사진
+
+    const GAP = 2;
+    const CELL = 128;        // 미리보기 칸 크기 (CSS --cell 과 같게)
+    const THUMB = 40;        // 목록 썸네일 최대 높이
+    const THUMB_W = 52;      // 목록 썸네일 최대 너비 (합친 칸은 가로로 긴 모양)        // 목록 썸네일 크기
+    const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
+
+    const card = document.getElementById('x-card');
+
+    // ───── 헤더 ─────
+    function updateHeader() {
+        const nick = document.getElementById('in-nick').value.trim();
+        document.getElementById('v-nick').innerText = nick || '닉네임';
+
+        document.getElementById('v-lock').style.display = document.getElementById('in-lock').checked ? 'block' : 'none';
+
+        let count = document.getElementById('in-count').value.trim();
+        // 숫자만 입력했으면 1,234 형식으로
+        if (/^\d+$/.test(count)) count = Number(count).toLocaleString('en-US');
+        document.getElementById('v-count').innerText = count || '0';
+    }
+    ['in-nick', 'in-count'].forEach(id => document.getElementById(id).addEventListener('input', updateHeader));
+    document.getElementById('in-lock').addEventListener('change', updateHeader);
+
+    // ───── 열 개수 ─────
+    function setCols(n) {
+        cols = n;
+        card.style.setProperty('--cols', n);
+        document.getElementById('col-3').classList.toggle('active', n === 3);
+        document.getElementById('col-4').classList.toggle('active', n === 4);
+        // 4열 → 3열로 바꾸면 4칸짜리는 3칸으로
+        media.forEach(m => { if (m.span > n) m.span = n; });
+        refreshAll();
+    }
+
+    // ───── 칸 합치기 (사진마다 가로 1~4칸) ─────
+    function setSpan(m, n) {
+        m.span = n;
+        refreshAll();
+    }
+
+    // ───── 설명 텍스트 스타일 ─────
+    function updateCapStyle() {
+        card.style.setProperty('--cap-size', document.getElementById('in-cap-size').value + 'px');
+        card.classList.toggle('cap-left', document.getElementById('in-cap-align').value === 'left');
+        const shadow = document.getElementById('in-cap-shadow').value;
+        card.classList.toggle('shadow-soft', shadow === 'soft');
+        card.classList.toggle('shadow-strong', shadow === 'strong');
+    }
+    ['in-cap-size', 'in-cap-align', 'in-cap-shadow'].forEach(id => document.getElementById(id).addEventListener('change', updateCapStyle));
+
+    // ───── 사진 추가 (아주 큰 사진만 화질 손상 없이 적당히 줄여서 사용) ─────
+    // 반씩 단계적으로 줄여서 계단 현상/뭉개짐 방지
+    function resizeHQ(img, tw, th) {
+        let src = img, w = img.width, h = img.height;
+        const make = (cw, ch) => {
+            const c = document.createElement('canvas');
+            c.width = cw; c.height = ch;
+            const ctx = c.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            return c;
+        };
+        while (w / 2 >= tw && h / 2 >= th) {
+            const c = make(Math.round(w / 2), Math.round(h / 2));
+            c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+            src = c; w = c.width; h = c.height;
+        }
+        const out = make(tw, th);
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, tw, th);
+        ctx.drawImage(src, 0, 0, tw, th);
+        return out;
+    }
+
+    function loadImage(file) {
+        return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onerror = () => resolve(null);
+            reader.onload = e => {
+                const img = new Image();
+                img.onerror = () => resolve(null);
+                img.onload = () => {
+                    // 고화질 저장(칸 128px × 6배 × 확대 3배 ≈ 2300px)에 충분하도록 짧은 변 2400px까지는 원본 그대로 사용
+                    const SHORT_MAX = 2400, LONG_MAX = 6000;
+                    const scale = Math.min(1, SHORT_MAX / Math.min(img.width, img.height), LONG_MAX / Math.max(img.width, img.height));
+                    if (scale === 1) return resolve({ src: e.target.result, w: img.width, h: img.height });
+                    const c = resizeHQ(img, Math.round(img.width * scale), Math.round(img.height * scale));
+                    resolve({ src: c.toDataURL('image/jpeg', 0.95), w: c.width, h: c.height });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    document.getElementById('in-media-add').addEventListener('change', function (e) {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        Promise.all(files.map(loadImage)).then(results => {
+            results.forEach(r => {
+                if (r) media.push({ id: nextId++, src: r.src, w: r.w, h: r.h, caption: '', zoom: 1, px: 50, py: 50, span: 1 });
+            });
+            e.target.value = '';
+            refreshAll();
+        });
+    });
+
+    function moveMedia(index, dir) {
+        const to = index + dir;
+        if (to < 0 || to >= media.length) return;
+        [media[index], media[to]] = [media[to], media[index]];
+        refreshAll();
+    }
+
+    function removeMedia(index) {
+        if (media[index] && media[index].id === selectedId) selectedId = null;
+        media.splice(index, 1);
+        refreshAll();
+    }
+
+    function clearMedia() {
+        if (!media.length) return;
+        if (!confirm('사진을 전부 삭제할까요?')) return;
+        media = [];
+        selectedId = null;
+        refreshAll();
+    }
+
+    // ───── 입력 폼의 사진 목록 ─────
+    function renderList() {
+        const list = document.getElementById('media-list');
+        list.innerHTML = '';
+        media.forEach((m, i) => {
+            const row = document.createElement('div');
+            row.className = 'media-row' + (m.id === selectedId ? ' selected' : '');
+            row.id = `row-${m.id}`;
+
+            const num = document.createElement('span');
+            num.className = 'media-num';
+            num.textContent = i + 1;
+
+            // 썸네일을 누르면 이 사진 크기·위치 조정
+            const thumb = document.createElement('div');
+            thumb.className = 'media-thumb';
+            thumb.title = '눌러서 크기·위치 조정';
+            thumb.style.backgroundImage = `url('${m.src}')`;
+            applyThumb(thumb, m, THUMB_W, THUMB);
+            thumb.onclick = () => selectMedia(m.id === selectedId ? null : m.id, true);
+            const thumbBox = document.createElement('div');
+            thumbBox.className = 'thumb-box';
+            thumbBox.appendChild(thumb);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = '하단 설명 (비우면 없음)';
+            input.value = m.caption;
+            // 입력 중에는 목록을 다시 그리지 않고 해당 칸만 바꿔서 포커스 유지
+            input.addEventListener('input', () => { m.caption = input.value; updateCellCaption(m); });
+
+            const up = makeMiniBtn('▲', () => moveMedia(i, -1), i === 0);
+            const down = makeMiniBtn('▼', () => moveMedia(i, 1), i === media.length - 1);
+            const del = makeMiniBtn('×', () => removeMedia(i));
+            del.classList.add('del');
+
+            // 칸 합치기: 1칸 / 2칸 / 3칸 (4열이면 4칸까지)
+            const seg = document.createElement('div');
+            seg.className = 'span-seg';
+            seg.title = '가로로 몇 칸을 차지할지';
+            for (let n = 1; n <= cols; n++) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = n + '칸';
+                if (spanOf(m) === n) b.classList.add('active');
+                b.onclick = () => setSpan(m, n);
+                seg.appendChild(b);
+            }
+
+            const ctrl = document.createElement('div');
+            ctrl.className = 'row-ctrl';
+            ctrl.append(seg, up, down, del);
+
+            row.append(num, thumbBox, input, ctrl);
+            list.appendChild(row);
+        });
+        document.getElementById('media-count').innerText = media.length;
+        document.getElementById('media-tools').style.display = media.length ? 'flex' : 'none';
+    }
+
+    function makeMiniBtn(text, onClick, disabled) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mini-btn';
+        b.textContent = text;
+        b.disabled = !!disabled;
+        b.onclick = onClick;
+        return b;
+    }
+
+    // ───── 미리보기 그리드 ─────
+    function renderGrid() {
+        const grid = document.getElementById('v-grid');
+        grid.innerHTML = '';
+        if (!media.length) {
+            // 사진이 없으면 빈 칸으로 자리만 보여주기
+            for (let i = 0; i < cols * 3; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'x-cell';
+                grid.appendChild(cell);
+            }
+            return;
+        }
+        media.forEach(m => {
+            const cell = document.createElement('div');
+            cell.className = 'x-cell' + (m.id === selectedId ? ' selected' : '');
+            cell.id = `cell-${m.id}`;
+            const sp = spanOf(m);
+            if (sp > 1) {
+                cell.style.gridColumn = `span ${sp}`;
+                cell.style.width = `calc(${sp} * var(--cell) + ${sp - 1} * var(--gap))`;
+            }
+            cell.dataset.id = m.id;
+            const img = document.createElement('img');
+            img.className = 'x-img';
+            img.src = m.src;
+            img.alt = '';
+            img.draggable = false;
+            cell.appendChild(img);
+            placeImg(img, m);
+            grid.appendChild(cell);
+            updateCellCaption(m);
+        });
+    }
+
+    // ───── 사진 크기·위치 ─────
+    // zoom 1 = 칸을 꽉 채우는 크기(cover). 위치는 background-position % (0 = 왼쪽/위, 100 = 오른쪽/아래)
+    const spanOf = m => Math.min(m.span || 1, cols);
+    const cellBox = m => { const n = spanOf(m); return { w: n * CELL + (n - 1) * GAP, h: CELL }; };
+
+    function displaySize(m, bw, bh) {
+        const s = Math.max(bw / m.w, bh / m.h) * m.zoom;
+        return { W: m.w * s, H: m.h * s };
+    }
+
+    // 썸네일도 칸 비율 그대로 (합친 칸은 가로로 긴 모양), maxW×maxH 안에 맞춤
+    function applyThumb(el, m, maxW, maxH) {
+        const c = cellBox(m);
+        const k = Math.min(maxW / c.w, maxH / c.h);
+        const w = c.w * k, h = c.h * k;
+        el.style.width = w.toFixed(1) + 'px';
+        el.style.height = h.toFixed(1) + 'px';
+        applyBg(el, m, w, h);
+    }
+
+    function applyBg(el, m, bw, bh) {
+        const { W, H } = displaySize(m, bw, bh);
+        el.style.backgroundSize = `${W.toFixed(2)}px ${H.toFixed(2)}px`;
+        el.style.backgroundPosition = `${m.px.toFixed(2)}% ${m.py.toFixed(2)}%`;
+    }
+
+    // 미리보기 칸의 <img>: background-position %와 같은 방식으로 위치 계산
+    function placeImg(img, m) {
+        const c = cellBox(m);
+        const { W, H } = displaySize(m, c.w, c.h);
+        img.style.width = `${W.toFixed(2)}px`;
+        img.style.height = `${H.toFixed(2)}px`;
+        img.style.left = `${((c.w - W) * m.px / 100).toFixed(2)}px`;
+        img.style.top = `${((c.h - H) * m.py / 100).toFixed(2)}px`;
+    }
+
+    // 칸·썸네일·조정 패널에 바뀐 값 반영 (목록은 다시 그리지 않음)
+    function updateMediaView(m) {
+        const cell = document.getElementById(`cell-${m.id}`);
+        const img = cell && cell.querySelector('.x-img');
+        if (img) placeImg(img, m);
+        const thumb = document.querySelector(`#row-${m.id} .media-thumb`);
+        if (thumb) applyThumb(thumb, m, THUMB_W, THUMB);
+        if (m.id === selectedId) syncPanel(m);
+    }
+
+    const findMedia = id => media.find(m => m.id === Number(id));
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const posLabel = (v, lo, hi) => Math.round(v) === 50 ? '가운데' : (v < 50 ? lo : hi) + ' ' + Math.round(Math.abs(v - 50) * 2);
+
+    function selectMedia(id, scrollTo) {
+        selectedId = id;
+        document.querySelectorAll('.x-cell.selected, .media-row.selected').forEach(el => el.classList.remove('selected'));
+        const panel = document.getElementById('adjust-panel');
+        const m = id != null ? findMedia(id) : null;
+        if (!m) {
+            selectedId = null;
+            panel.classList.remove('show');
+            updateAdjustHint();
+            return;
+        }
+        const cell = document.getElementById(`cell-${m.id}`);
+        if (cell) cell.classList.add('selected');
+        const row = document.getElementById(`row-${m.id}`);
+        if (row) row.classList.add('selected');
+        document.getElementById('adj-num').innerText = media.indexOf(m) + 1;
+        document.getElementById('adj-thumb').style.backgroundImage = `url('${m.src}')`;
+        panel.classList.add('show');
+        syncPanel(m);
+        updateAdjustHint();
+        // 목록에서 골랐으면 미리보기의 그 칸이 보이게 스크롤 (폰에서 유용)
+        if (scrollTo && cell) cell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+
+    function syncPanel(m) {
+        document.getElementById('adj-zoom').value = Math.round(m.zoom * 100);
+        document.getElementById('adj-zoom-val').innerText = Math.round(m.zoom * 100) + '%';
+        document.getElementById('adj-x').value = Math.round(m.px);
+        document.getElementById('adj-x-val').innerText = posLabel(m.px, '왼쪽', '오른쪽');
+        document.getElementById('adj-y').value = Math.round(m.py);
+        document.getElementById('adj-y-val').innerText = posLabel(m.py, '위', '아래');
+        applyThumb(document.getElementById('adj-thumb'), m, 52, 34);
+    }
+
+    function updateAdjustHint() {
+        document.getElementById('adjust-hint').style.display = (media.length && selectedId == null) ? 'block' : 'none';
+    }
+
+    function resetAdjust() {
+        const m = findMedia(selectedId);
+        if (!m) return;
+        m.zoom = 1; m.px = 50; m.py = 50;
+        updateMediaView(m);
+    }
+
+    // 슬라이더
+    document.getElementById('adj-zoom').addEventListener('input', e => {
+        const m = findMedia(selectedId); if (!m) return;
+        m.zoom = clamp(e.target.value / 100, ZOOM_MIN, ZOOM_MAX);
+        updateMediaView(m);
+    });
+    document.getElementById('adj-x').addEventListener('input', e => {
+        const m = findMedia(selectedId); if (!m) return;
+        m.px = Number(e.target.value);
+        updateMediaView(m);
+    });
+    document.getElementById('adj-y').addEventListener('input', e => {
+        const m = findMedia(selectedId); if (!m) return;
+        m.py = Number(e.target.value);
+        updateMediaView(m);
+    });
+
+    // ───── 미리보기에서 직접 끌어서 옮기기 / 휠·두 손가락으로 크기 ─────
+    const gridEl = document.getElementById('v-grid');
+    const pointers = new Map();
+    let gesture = null;
+
+    // 탭(클릭)으로 칸 선택 — 스크롤하려고 쓸어내린 건 선택 안 됨
+    gridEl.addEventListener('click', e => {
+        const cell = e.target.closest('.x-cell[data-id]');
+        if (!cell) return;
+        const id = Number(cell.dataset.id);
+        if (id !== selectedId) selectMedia(id, false);
+    });
+
+    function startGesture(m) {
+        const pts = [...pointers.values()];
+        if (pts.length === 1) {
+            gesture = { m, mode: 'pan', x: pts[0].x, y: pts[0].y, px: m.px, py: m.py };
+        } else if (pts.length >= 2) {
+            gesture = { m, mode: 'pinch', dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1, zoom: m.zoom };
+        } else {
+            gesture = null;
+        }
+    }
+
+    gridEl.addEventListener('pointerdown', e => {
+        const cell = e.target.closest('.x-cell.selected');
+        if (!cell) return;
+        const m = findMedia(cell.dataset.id);
+        if (!m) return;
+        e.preventDefault();
+        try { cell.setPointerCapture(e.pointerId); } catch (err) {}
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        startGesture(m);
+    });
+
+    gridEl.addEventListener('pointermove', e => {
+        if (!gesture || !pointers.has(e.pointerId)) return;
+        e.preventDefault();
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const m = gesture.m;
+        if (gesture.mode === 'pan') {
+            const c = cellBox(m);
+            const { W, H } = displaySize(m, c.w, c.h);
+            const dx = e.clientX - gesture.x, dy = e.clientY - gesture.y;
+            // 사진을 손가락 방향 그대로 따라오게: 위치% = 이동거리 / (칸 - 사진) 비율
+            if (Math.abs(c.w - W) > 0.5) m.px = clamp(gesture.px + dx / (c.w - W) * 100, 0, 100);
+            if (Math.abs(c.h - H) > 0.5) m.py = clamp(gesture.py + dy / (c.h - H) * 100, 0, 100);
+        } else {
+            const pts = [...pointers.values()];
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            m.zoom = clamp(gesture.zoom * dist / gesture.dist, ZOOM_MIN, ZOOM_MAX);
+        }
+        updateMediaView(m);
+    });
+
+    function endPointer(e) {
+        if (!pointers.has(e.pointerId)) return;
+        pointers.delete(e.pointerId);
+        // 손가락 하나가 떨어지면 남은 손가락 기준으로 다시 시작 (튀는 것 방지)
+        if (gesture && pointers.size) startGesture(gesture.m);
+        else gesture = null;
+    }
+    gridEl.addEventListener('pointerup', endPointer);
+    gridEl.addEventListener('pointercancel', endPointer);
+
+    // PC: 조정 중인 칸 위에서 마우스 휠로 크기 조절
+    gridEl.addEventListener('wheel', e => {
+        const cell = e.target.closest('.x-cell.selected');
+        if (!cell) return;
+        const m = findMedia(cell.dataset.id);
+        if (!m) return;
+        e.preventDefault();
+        m.zoom = clamp(m.zoom * Math.exp(-e.deltaY * 0.0015), ZOOM_MIN, ZOOM_MAX);
+        updateMediaView(m);
+    }, { passive: false });
+
+    function updateCellCaption(m) {
+        const cell = document.getElementById(`cell-${m.id}`);
+        if (!cell) return;
+        let cap = cell.querySelector('.x-cap');
+        const text = m.caption.trim();
+        if (!text) { if (cap) cap.remove(); return; }
+        if (!cap) {
+            cap = document.createElement('div');
+            cap.className = 'x-cap';
+            cell.appendChild(cap);
+        }
+        cap.innerText = text;
+    }
+
+    function refreshAll() {
+        renderList();
+        renderGrid();
+        selectMedia(selectedId, false);
+    }
+
+    // ───── 이미지로 저장 (고화질) ─────
+    // 기기별 캔버스 한계: 아이폰/아이패드는 약 1,670만 픽셀을 넘으면 빈 이미지가 나와서 자동으로 맞춤
+    const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const IS_MOBILE = IS_IOS || /Android|Mobi/i.test(navigator.userAgent);
+    const MAX_AREA = IS_IOS ? 16000000 : (IS_MOBILE ? 32000000 : 64000000);
+    const MAX_SIDE = 16000;
+
+    function getSaveScale(w, h) {
+        const wanted = Number(document.getElementById('in-quality').value);
+        return Math.min(wanted, Math.sqrt(MAX_AREA / (w * h)), MAX_SIDE / w, MAX_SIDE / h);
+    }
+
+    function updateSaveInfo() {
+        const w = card.offsetWidth, h = card.offsetHeight;
+        if (!w || !h) return;
+        const scale = getSaveScale(w, h);
+        const wanted = Number(document.getElementById('in-quality').value);
+        let text = `저장 크기: ${Math.floor(w * scale).toLocaleString()} × ${Math.floor(h * scale).toLocaleString()}px`;
+        if (scale < wanted - 0.01) text += ` (이 기기 한계로 ${scale.toFixed(1)}배로 맞춤)`;
+        document.getElementById('save-size-info').innerText = text;
+    }
+    document.getElementById('in-quality').addEventListener('change', updateSaveInfo);
+    if (window.ResizeObserver) new ResizeObserver(updateSaveInfo).observe(card);
+
+    async function captureMockup() {
+        const btn = document.getElementById('btn-save');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = '고화질 이미지 만드는 중...';
+
+        const wrap = document.getElementById('preview-wrap');
+        wrap.scrollLeft = 0; // 모바일에서 옆으로 스크롤한 상태여도 잘리지 않게
+        // 저장 이미지에는 조정 중 파란 테두리가 안 들어가게 잠깐 빼두기
+        const selectedCells = [...card.querySelectorAll('.x-cell.selected')];
+        selectedCells.forEach(c => c.classList.remove('selected'));
+
+        try {
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            const w = card.offsetWidth, h = card.offsetHeight;
+            const scale = getSaveScale(w, h);
+
+            // 캔버스를 직접 만들어서 사진 축소 품질을 '높음'으로 (뭉개짐·계단 현상 방지)
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.floor(w * scale);
+            canvas.height = Math.floor(h * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            await html2canvas(card, {
+                canvas, scale, width: w, height: h,
+                backgroundColor: null, useCORS: true,
+                scrollX: -window.scrollX, scrollY: -window.scrollY,
+                windowWidth: Math.max(document.documentElement.clientWidth, w + 40)
+            });
+
+            // 큰 이미지는 dataURL 대신 Blob으로 저장해야 안 끊김
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (!blob) throw new Error('blob 생성 실패');
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `twitter_media_${cols}col_${canvas.width}x${canvas.height}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (err) {
+            console.error(err);
+            alert('저장에 실패했어요. 저장 화질을 한 단계 낮춰서 다시 시도해 주세요.');
+        } finally {
+            selectedCells.forEach(c => c.classList.add('selected'));
+            btn.disabled = false;
+            btn.textContent = '📸 이미지로 저장하기';
+        }
+    }
+
+    updateHeader();
+    updateCapStyle();
+    refreshAll();
+    updateSaveInfo();
+</script>
+
+</body>
+</html>
